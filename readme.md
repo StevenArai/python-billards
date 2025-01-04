@@ -1,7 +1,7 @@
 
 
 # Python Billiards  Course Design
-
+English | [简体中文](README_zh-cn.md)
 ## Project Overview
 This project is a Python billiards  course design, primarily implementing a simple billiards . The game interface uses the Pygame library, and the physics engine is powered by Pymunk.
 

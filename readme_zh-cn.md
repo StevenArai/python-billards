@@ -1,4 +1,5 @@
 # Python 台球课程设计
+简体中文 | [English](readme.md)
 ## 项目简介
 本项目为Python台球课程设计，主要实现了一个简单的台球游戏。游戏界面使用了Pygame库，物理引擎使用了Pymunk。
 

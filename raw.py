@@ -330,9 +330,84 @@ class GUI:
     class ScoreBoard(GUIElement):
         def __init__(self, screen):
             super().__init__(screen)
+            self.roland_texture = pygame.image.load("assets/texture/figure/roland.png").convert_alpha()
+            self.netzach_texture = pygame.image.load("assets/texture/figure/netzach.png").convert_alpha()
+            self.roland_dark_texture = pygame.image.load("assets/texture/figure/roland_dark.png").convert_alpha()
+            self.netzach_dark_texture = pygame.image.load("assets/texture/figure/netzach_dark.png").convert_alpha()
+            self.pebox_texture = pygame.image.load("assets/texture/pe-box.png").convert_alpha()  
+            self.active_player = "roland"
+            self.roland_right = None #"FullC" or "HalfC"
+            self.netzach_right = None #"FullC" or "HalfC"
+            self.font = pygame.font.Font("assets/fonts/leefont.ttf", 36)
 
-        def draw(self):
-            pass
+        def opposite_color(self, color):
+            if color == "FullC":
+                return "HalfC"
+            elif color == "HalfC":
+                return "FullC"
+            else:
+                return None
+            
+        def clear_ball_right(self):
+            self.roland_right = None
+            self.netzach_right = None
+
+        def set_ball_right(self, ball_right):
+            if self.active_player == "roland":
+                self.roland_right = ball_right
+                self.netzach_right = self.opposite_color(ball_right)
+            elif self.active_player == "netzach":
+                self.netzach_right = ball_right
+                self.roland_right = self.opposite_color(ball_right)
+
+        def change_player(self):
+            if self.active_player == "roland":
+                self.active_player = "netzach"
+            elif self.active_player == "netzach":
+                self.active_player = "roland"
+            
+        def get_ball_right(self, player):
+            if player == "roland":
+                ball_right = self.roland_right
+            elif player == "netzach":
+                ball_right = self.netzach_right
+            return ball_right
+
+        def get_ball_count(self, player, balls):
+            ball_right = self.get_ball_right(player)
+            if ball_right == "FullC":
+                return sum(1 for ball in balls if ball.index in range(1, 8) and ball.show)
+            elif ball_right == "HalfC":
+                return sum(1 for ball in balls if ball.index in range(9, 16) and ball.show)
+            else:
+                return '-'
+
+        def draw(self, balls):
+            super().draw()
+            self.screen.blit(pygame.transform.flip(self.pebox_texture,True,False), (120, self.screen.get_height() - self.pebox_texture.get_height()))
+            self.screen.blit(self.pebox_texture, (self.screen.get_width() - self.pebox_texture.get_width() - 120, self.screen.get_height() - self.pebox_texture.get_height()))
+            roland_count_rendered=self.font.render(str(self.get_ball_count("roland",balls)), True, (208, 0, 0))
+            self.screen.blit(roland_count_rendered,(120+78, self.screen.get_height() - self.pebox_texture.get_height()+40)) 
+            netzach_count_rendered=self.font.render(str(self.get_ball_count("netzach",balls)), True, (208, 0, 0))
+            self.screen.blit(netzach_count_rendered,(self.screen.get_width() - self.pebox_texture.get_width() - 120+42, self.screen.get_height() - self.pebox_texture.get_height()+40))
+            if self.active_player == "roland":
+                self.screen.blit(self.roland_texture, (-100, 300))
+                self.screen.blit(self.netzach_dark_texture, (self.screen.get_width() - self.netzach_texture.get_width() + 80, 300))
+            elif self.active_player == "netzach":
+                self.screen.blit(self.roland_dark_texture, (-100, 300))
+                self.screen.blit(self.netzach_texture, (self.screen.get_width() - self.netzach_texture.get_width() + 80, 300))
+
+            if(self.get_ball_right(self.active_player) == "FullC"):
+                color_now="全色球"
+            elif(self.get_ball_right(self.active_player) == "HalfC"):
+                color_now="半色球"
+            else:
+                color_now="获取球权"
+            color_now_rendered=self.font.render(color_now, True, (184, 255, 249))
+            color_now_rect=color_now_rendered.get_rect(center=(self.screen.get_width() / 2, self.screen.get_height() / 2 + 300))
+            self.screen.blit(color_now_rendered,color_now_rect)
+            
+
 
     class Arbiter:
         @staticmethod
@@ -398,16 +473,19 @@ class GUI:
                 if balls_dropped == []:
                     #exchange
                     prompt_text=("无球进洞， 交换球权")
+                    self.score_board.change_player()
 
                 elif has_black(balls_dropped):
                     #reset
                     prompt_text=("黑8进洞， 重新开局")
+                    self.score_board.clear_ball_right()
                     billiard_table.reset()
                     self.scene_counter = 0
 
                 elif has_white(balls_dropped):
                     #exchange & free ball
                     prompt_text=("白球进洞， 交换球权， 自由球")
+                    self.score_board.change_player()
                     self.free_ball.open = True
 
                 else:
@@ -415,9 +493,11 @@ class GUI:
                     billiard_table.ball_right = first_dropped
                     if first_dropped == "FullC": #exchange & free ball
                         prompt_text=("全色球进洞， 球权归于该色球")
+                        self.score_board.set_ball_right("FullC")
 
                     elif first_color(balls_dropped) == "HalfC":
                         prompt_text=("半色球进洞， 球权归于该色球")
+                        self.score_board.set_ball_right("HalfC")
 
                     else:
                         prompt_text=("出现错误： 未经处理的异常")
@@ -426,17 +506,21 @@ class GUI:
                 if balls_dropped == []:
                     #exchange
                     prompt_text=("无球进洞， 交换球权")
+                    self.score_board.change_player()
                     billiard_table.ball_right = opposite_color(ball_right)
 
                 elif has_black(balls_dropped):
                     #reset
                     prompt_text=("黑8进洞， 重新开局")
+                    self.score_board.clear_ball_right()
+                    self.score_board.change_player()
                     billiard_table.reset()
                     self.scene_counter = 0
 
                 elif has_white(balls_dropped):
                     #exchange & free ball
                     prompt_text=("白球进洞， 交换球权， 自由球")
+                    self.score_board.change_player()
                     billiard_table.ball_right = opposite_color(ball_right)
                     self.free_ball.open = True
 
@@ -446,6 +530,7 @@ class GUI:
 
                 else: #exchange & free ball
                     prompt_text=("异色球进洞， 交换球权， 自由球")
+                    self.score_board.change_player()
                     billiard_table.ball_right = opposite_color(ball_right)
                     self.free_ball.open = True
 
@@ -459,7 +544,7 @@ class GUI:
 
  
         self.scene_change.draw()
-        self.score_board.draw()
+        self.score_board.draw(billiard_table.balls)
 
 
 class Game:
